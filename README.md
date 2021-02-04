@@ -8,6 +8,8 @@ pip3 install numpy
 pip3 install opencv-python
 pip3 install wheel
 pip3 install pandas
+pip3 install -U matplotlib
+pip3 install --upgrade Pillow
 ```
 ### geolocation_map file path
 ```bash
@@ -15,7 +17,7 @@ pip3 install pandas
 ```
 ### How to run it
 ```python
-python display_wf_info.py <video_input> <Projection_Matrix> <geolocation_map> <log_file_at_edge> [<log_file_at_TP>] (optional) [<log_file_at_CD>] (optional)
+python main.py <video_input> <Projection_Matrix> <geolocation_map> <log_file_at_edge> [<log_file_at_TP>] (optional) [<log_file_at_CD>] (optional)
 ```
 Agruments:
 
