@@ -27,7 +27,7 @@ def create_TP_dataframe(TPlog_file):
     # Log file include in the TP log file as defined in "TPheaders" varibale 
     TPheaders = 'frame ts obj_id TPlat TPlon TPts'.split()
     TPdf = pd.read_csv(TPlog_file, delimiter=' ', names=TPheaders)
-    TPdf = TPdf[(TPdf['obj_id'] == "20939_1") | (TPdf['obj_id'] == "20939_27") | (TPdf['obj_id'] == "20939_84")]
+    # TPdf = TPdf[(TPdf['obj_id'] == "20939_1") | (TPdf['obj_id'] == "20939_27") | (TPdf['obj_id'] == "20939_84")]
 
     return TPdf
 
@@ -77,8 +77,8 @@ def main():
             TPlog_file =sys.argv[5]
             CDlog_file = sys.argv[6]
             print("Displaying log information from " + EdgeWFlog_file + " , " + TPlog_file + " and " + CDlog_file + " on video " + video_input_file)
-
-    print("Displaying log information from " + EdgeWFlog_file + " on video " + video_input_file)
+    else:
+        print("Displaying log information from " + EdgeWFlog_file + " on video " + video_input_file)
 
     df = create_WF_dataframe(EdgeWFlog_file)
 
