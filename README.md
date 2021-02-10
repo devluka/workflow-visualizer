@@ -17,7 +17,7 @@ pip3 install --upgrade Pillow
 ```
 ### How to run it
 ```python
-python main.py <video_input> <Projection_Matrix> <geolocation_map> <log_file_at_edge> [<log_file_at_TP>] (optional) [<log_file_at_CD>] (optional)
+python main.py <video_input> <Projection_Matrix> <geolocation_map> <log_file_at_edge> [<log_file_at_CD>] (optional)
 ```
 Agruments:
 
@@ -25,5 +25,4 @@ Agruments:
 * projection_matrix : path to the projection matrix file
 * geolocation_map: path to the .tif file
 * log_file_at_edge: path to log file which includes workflow execution information
-* log_file_at_TP: path to the TP log file
 * log_file_at_CD: path to the CD log file

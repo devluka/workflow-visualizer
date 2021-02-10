@@ -8,14 +8,12 @@ from osgeo import gdal
 class DisplayInfo:
     previous_positions = 100
 
-    def __init__(self, video_input, df, TPdf, ProjMat, InvProjMat, adfGeoTransform, tp_info_avail, CDdf, cd_info_avail):
+    def __init__(self, video_input, df, ProjMat, InvProjMat, adfGeoTransform, CDdf, cd_info_avail):
         self.video_input = video_input
         self.df = df
-        self.TPdf = TPdf
         self.ProjMat = ProjMat
         self.InvProjMat = InvProjMat
         self.adfGeoTransform = adfGeoTransform
-        self.tp_info_avail = tp_info_avail
         self.CDdf = CDdf
         self.cd_info_avail = cd_info_avail
 
@@ -53,7 +51,7 @@ class DisplayInfo:
         # 7: ()            Traffic light (colour not defined)
         # 8: ()            Traffic sign (colour not defined)
         # 9: (160,160,160) Train (Grey)
-        color_boxes = { '0': (0,127,255), '1': (255,0,0), '2': (51,255,51), '3': (0,153,0), '4': (255,229,204), '5': (204,0,102), '6': (255,153,204), '9': (160,160,160) }
+        color_boxes = { 'person': (0,127,255), 'car': (255,0,0), 'truck': (51,255,51), 'bus': (0,153,0), 'motor': (255,229,204), 'bike': (204,0,102), 'rider': (255,153,204), 'train': (160,160,160) }
 
         current_frame = 0
 
@@ -65,8 +63,6 @@ class DisplayInfo:
                 # extract rows according to the current video frame number
                 df_current = self.df.loc[self.df['frame'] == current_frame]
 
-                if self.tp_info_avail:
-                    TPdf_current = self.TPdf.loc[self.TPdf['frame'] == current_frame]
                 if self.cd_info_avail:
                     CDdf_current = self.CDdf.loc[self.CDdf['frame'] == current_frame]
                 
@@ -74,11 +70,13 @@ class DisplayInfo:
                 for _, row in df_current.iterrows():
                     # extract x, y, w, h from dataframe
                     x, y, w, h, lon, lat = int(row['x']), int(row['y']), int(row['w']), int(row['h']), float(row['lon']), float(row['lat'])
+                    TPlat, TPlon, TPts = row['TPlat'].split(','), row['TPlon'].split(','), row['TPts'].split(',')
+
                     label, cat = row['obj_id'], row['category']
                     color = color_boxes.get(str(cat), (0,0,0))
-
+                    
                     print(" ")
-                    print("Processing frame:" + str(current_frame) + " obj_id:" + str(label) + " cat:" + str(cat) + " x:" + str(x) + " y:" + str(y) + " w:" + str(w) + " h:" + str(h) + " lat:" + str(lat) + " lon:" + str(lon))
+                    print("Processing frame:" + str(current_frame) + " obj_id:" + str(label) + " cat:" + str(cat) + " x:" + str(x) + " y:" + str(y) + " w:" + str(w) + " h:" + str(h) + " lat:" + str(lat) + " lon:" + str(lon) + " TPlat:" + str(TPlat) + " TPlon:" + str(TPlon))
 
                     # GPS position is considered to be at the center of the bounding box
                     tmp_lat,tmp_lon = self.Pixel2GPS( x + (w/2), y + (h/2))
@@ -93,22 +91,16 @@ class DisplayInfo:
 
                     cv2.circle(frame,frame_pixels,10, color, 10)
                     cv2.putText(frame, label, frame_pixels, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, .6, (255, 255, 255), 2, cv2.LINE_AA)
-                
-                if self.tp_info_avail:
-                    for _, row in TPdf_current.iterrows():
-                        label = row['obj_id']
-                        TPlat, TPlon, TPts = row['TPlat'].split(','), row['TPlon'].split(','), row['TPts'].split(',')
-                        
-                        print("TP_info: Obj_id:" + str(label) + " lat:" + str(TPlat) + " lon:" + str(TPlon))
 
-                        for i in range(len(TPlat)-1):
-                            TPframe_pixels1 = self.GPS2Pixel(float(TPlat[i]),float(TPlon[i])) 
-                            TPframe_pixels2 = self.GPS2Pixel(float(TPlat[i+1]),float(TPlon[i+1])) 
-                            cv2.line(frame, (TPframe_pixels1[0], TPframe_pixels1[1]), (TPframe_pixels2[0]+10,TPframe_pixels2[1]+10), (0,0,255), 2)
-                            cv2.circle(frame, TPframe_pixels1, 10, (0,0,255), 10)
+                    for i in range(len(TPlat)-1):
+                        TPframe_pixels1 = self.GPS2Pixel(float(TPlat[i]),float(TPlon[i])) 
+                        TPframe_pixels2 = self.GPS2Pixel(float(TPlat[i+1]),float(TPlon[i+1])) 
+                        cv2.line(frame, (TPframe_pixels1[0], TPframe_pixels1[1]), (TPframe_pixels2[0]+10,TPframe_pixels2[1]+10), (0,0,255), 2)
+                        cv2.circle(frame, TPframe_pixels1, 10, (0,0,255), 10)
 
-                            if (i == len(TPlat)-2):
-                                cv2.circle(frame, TPframe_pixels2, 10, (0,0,255), 10)
+                        if (i == len(TPlat)-2):
+                            cv2.circle(frame, TPframe_pixels2, 10, (0,0,255), 10)
+               
 
                 if self.cd_info_avail:
                     #Process the CD log file
@@ -166,8 +158,8 @@ class DisplayInfo:
         x = mapPixel[0][0][0]
         y = mapPixel[0][0][1]
 
-        lat = self.adfGeoTransform[4] * x + self.adfGeoTransform[5] * y + self.adfGeoTransform[3];
-        lon = self.adfGeoTransform[1] * x + self.adfGeoTransform[2] * y + self.adfGeoTransform[0];
+        lat = self.adfGeoTransform[4] * x + self.adfGeoTransform[5] * y + self.adfGeoTransform[3]
+        lon = self.adfGeoTransform[1] * x + self.adfGeoTransform[2] * y + self.adfGeoTransform[0]
 
         # print(f"agfGeo[0]: {adfGeoTransform[0]} [1] {adfGeoTransform[1]} [2] {adfGeoTransform[2]} [3] {adfGeoTransform[3]} [4] {adfGeoTransform[4]}")
         # print("At Pixel2GPS: ("+str(img_x)+","+str(img_y)+")->("+str(lat)+","+str(lon)+")")
