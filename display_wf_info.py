@@ -31,35 +31,42 @@ class DisplayInfo:
         width, height  = int(cap.get(3)), int(cap.get(4))
         out = cv2.VideoWriter('TP.mp4', fourcc, 12, (width,height))
 
-
         self.display_boxes(cap, out)
-
 
         cap.release()
         out.release()
         cv2.destroyAllWindows()
-    
+
+    # Colour codes of identified objects
+    # 0: (0,127,255)   Person (Orange)
+    # 1: (255,0,0)     Car (Blue)
+    # 2: (51,255,51)   Truck (light Green)
+    # 3: (0,153,0)     Bus (Dark Green)
+    # 4: (255,229,204) Motor (Light Blue)
+    # 5: (204,0,102)   Bike (Dark Purple)
+    # 6: (255,153,204) Rider (Light Purple)
+    # 7: ()            Traffic light (colour not defined)
+    # 8: ()            Traffic sign (colour not defined)
+    # 9: (160,160,160) Train (Grey)
+    def color_boxes(obj_id)
+        color_id1 = { 'person': (0,127,255), 'car': (255,0,0), 'truck': (51,255,51), 'bus': (0,153,0), 'motor': (255,229,204), 'bike': (204,0,102), 'rider': (255,153,204), 'train': (160,160,160) }
+        color_id2 = { '0': (0,127,255), '1': (255,0,0), '2': (51,255,51), '3': (0,153,0), '4': (255,229,204), '5': (204,0,102), '6': (255,153,204), '7': (160,160,160) }
+
+        return color_id1.get(str(cat), (0,0,0))
+
     def display_boxes(self, cap, out):
-        # Colour codes of identified objects
-        # 0: (0,127,255)   Person (Orange)
-        # 1: (255,0,0)     Car (Blue)
-        # 2: (51,255,51)   Truck (light Green)
-        # 3: (0,153,0)     Bus (Dark Green)
-        # 4: (255,229,204) Motor (Light Blue)
-        # 5: (204,0,102)   Bike (Dark Purple)
-        # 6: (255,153,204) Rider (Light Purple)
-        # 7: ()            Traffic light (colour not defined)
-        # 8: ()            Traffic sign (colour not defined)
-        # 9: (160,160,160) Train (Grey)
-        color_boxes = { 'person': (0,127,255), 'car': (255,0,0), 'truck': (51,255,51), 'bus': (0,153,0), 'motor': (255,229,204), 'bike': (204,0,102), 'rider': (255,153,204), 'train': (160,160,160) }
 
         current_frame = 0
 
         positions_dict = {}   
 
         while cap.isOpened():
+
             ret, frame = cap.read()
             if ret == True:
+                # Apply a Blur filter for anonymisation purposes
+                frame = cv2.GaussianBlur(frame, (11, 11), 0)
+
                 # extract rows according to the current video frame number
                 df_current = self.df.loc[self.df['frame'] == current_frame]
 
@@ -73,7 +80,7 @@ class DisplayInfo:
                     TPlat, TPlon, TPts = row['TPlat'].split(','), row['TPlon'].split(','), row['TPts'].split(',')
 
                     label, cat = row['obj_id'], row['category']
-                    color = color_boxes.get(str(cat), (0,0,0))
+                    color = color_boxes(str(cat))
                     
                     print(" ")
                     print("Processing frame:" + str(current_frame) + " obj_id:" + str(label) + " cat:" + str(cat) + " x:" + str(x) + " y:" + str(y) + " w:" + str(w) + " h:" + str(h) + " lat:" + str(lat) + " lon:" + str(lon) + " TPlat:" + str(TPlat) + " TPlon:" + str(TPlon))
@@ -89,19 +96,20 @@ class DisplayInfo:
                     cv2.rectangle(frame, (x, y - 25), (x + 12 * len(label), y ), color, -1)
                     cv2.putText(frame, label, (x, y - 5), cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, .6, (255, 255, 255), 2, cv2.LINE_AA)
 
-                    cv2.circle(frame,frame_pixels,10, color, 10)
-                    cv2.putText(frame, label, frame_pixels, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, .6, (255, 255, 255), 2, cv2.LINE_AA)
+                    cv2.circle(frame,frame_pixels, 5, color, 5)
 
                     for i in range(len(TPlat)-1):
-                        TPframe_pixels1 = self.GPS2Pixel(float(TPlat[i]),float(TPlon[i])) 
-                        TPframe_pixels2 = self.GPS2Pixel(float(TPlat[i+1]),float(TPlon[i+1])) 
-                        cv2.line(frame, (TPframe_pixels1[0], TPframe_pixels1[1]), (TPframe_pixels2[0]+10,TPframe_pixels2[1]+10), (0,0,255), 2)
-                        cv2.circle(frame, TPframe_pixels1, 10, (0,0,255), 10)
+                        if (float(TPlat[i]) != 0.0):
+                            TPframe_pixels1 = self.GPS2Pixel(float(TPlat[i]),float(TPlon[i])) 
+                            TPframe_pixels2 = self.GPS2Pixel(float(TPlat[i+1]),float(TPlon[i+1])) 
+                            cv2.line(frame, (TPframe_pixels1[0], TPframe_pixels1[1]), (TPframe_pixels2[0],TPframe_pixels2[1]), (0,0,255), 2)
+                            cv2.circle(frame, TPframe_pixels1, 4, (0,0,255), 4)
 
-                        if (i == len(TPlat)-2):
-                            cv2.circle(frame, TPframe_pixels2, 10, (0,0,255), 10)
+                            if (i == 0):
+                                cv2.line(frame, (frame_pixels[0], frame_pixels[1]), (TPframe_pixels1[0],TPframe_pixels1[1]), (0,0,255), 2)
+                            if (i == len(TPlat)-2):
+                                cv2.circle(frame, TPframe_pixels2, 4, (0,0,255), 4)
                
-
                 if self.cd_info_avail:
                     #Process the CD log file
                     for _, row in CDdf_current.iterrows():
@@ -119,10 +127,12 @@ class DisplayInfo:
                 out.write(frame)
                 cv2.imshow('Frame', frame)
                 cv2.waitKey(1)
-                #input()
+                input()
+
             else:
                 print("Can't receive frame (stream end?). Exiting ...")
                 break
+
             # increment frame counter
             current_frame += 1
 
@@ -134,7 +144,7 @@ class DisplayInfo:
                     pixel1 = val[i]
                     pixel2 = val[i+1]
 
-                    cv2.line(image, (pixel1[0], pixel1[1]), (pixel2[0]+10, pixel2[1]+10), (0,255,0), 2)
+                    cv2.line(image, (pixel1[0], pixel1[1]), (pixel2[0], pixel2[1]), (0,255,0), 2)
                     cv2.circle(image, pixel1, 4, (0,255,0), 3)
 
                     if (i == len(val)-2):
