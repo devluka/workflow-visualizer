@@ -56,7 +56,6 @@ class MapVis:
         """
         Conversion from latitude and longitude to the image pixels.
         It is used for drawing the GPS records on the map image.
-
         """
         old = (self.osm_points[2], self.osm_points[0])
         new = (0, h_w[1])
